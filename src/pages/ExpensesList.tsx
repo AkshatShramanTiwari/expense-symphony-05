@@ -30,6 +30,7 @@ import {
   DialogTitle,
   DialogClose 
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 const ExpensesList = () => {
   const { expenses, deleteExpense, loading } = useExpenses();
@@ -72,7 +73,41 @@ const ExpensesList = () => {
       deleteExpense(expenseToDelete);
       setDeleteConfirmOpen(false);
       setExpenseToDelete(null);
+      toast.success("Expense deleted successfully from database");
     }
+  };
+
+  // Handle export to CSV
+  const exportToCSV = () => {
+    if (filteredExpenses.length === 0) {
+      toast.error("No expenses to export");
+      return;
+    }
+
+    // Create CSV content
+    const headers = ["Date", "Description", "Category", "Amount"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredExpenses.map(expense => [
+        new Date(expense.date).toLocaleDateString(),
+        `"${expense.description.replace(/"/g, '""')}"`,
+        expense.category,
+        expense.amount
+      ].join(","))
+    ].join("\n");
+
+    // Create a blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `expenses_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("Expenses exported to CSV");
   };
 
   return (
@@ -84,13 +119,22 @@ const ExpensesList = () => {
             View and manage all your expenses
           </p>
         </div>
-        <Button 
-          className="bg-accent hover:bg-accent/90 expense-button flex items-center"
-          onClick={() => navigate('/add-expense')}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Expense
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={exportToCSV}
+            className="expense-button"
+          >
+            Export to CSV
+          </Button>
+          <Button 
+            className="bg-accent hover:bg-accent/90 expense-button flex items-center"
+            onClick={() => navigate('/add-expense')}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add New Expense
+          </Button>
+        </div>
       </div>
 
       <Card className="expense-card">
@@ -109,7 +153,7 @@ const ExpensesList = () => {
         <CardContent>
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-pulse text-lg">Loading expenses...</div>
+              <div className="animate-pulse text-lg">Loading expenses from database...</div>
             </div>
           ) : filteredExpenses.length > 0 ? (
             <div className="overflow-x-auto">
@@ -201,7 +245,7 @@ const ExpensesList = () => {
           <DialogHeader>
             <DialogTitle>Confirm Deletion</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this expense? This action cannot be undone.
+              Are you sure you want to delete this expense? This action cannot be undone. The record will be permanently removed from the database.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
