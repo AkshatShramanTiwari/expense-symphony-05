@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Dashboard from './Dashboard';
 import { toast } from 'sonner';
+import dbConfig from '@/db/dbConfig';
 
 const Index = () => {
   const { isAuthenticated, loading, user } = useAuth();
@@ -23,12 +24,18 @@ const Index = () => {
     // Initialize database connection
     const initDbConnection = async () => {
       try {
-        // In a real application, this would check if the database is connected
         console.log("Checking database connection...");
-        // This is just for demonstration
-        toast.info("Connected to DBS Expense Manager Database", {
-          description: "PostgreSQL database is ready for operations",
-        });
+        const connected = await dbConfig.testConnection();
+        
+        if (connected) {
+          toast.info("Connected to DBS Expense Manager Database", {
+            description: "PostgreSQL database is ready for operations",
+          });
+        } else {
+          toast.error("Database connection failed", {
+            description: "Please check your database configuration",
+          });
+        }
       } catch (error) {
         console.error("Database connection error:", error);
         toast.error("Database connection failed", {
